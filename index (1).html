@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>GGSEL OTC</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0c0f;
+  --bg2: #0f1217;
+  --bg3: #141820;
+  --surface: #1a1f2e;
+  --surface2: #1f2535;
+  --border: rgba(255,255,255,.07);
+  --border2: rgba(255,255,255,.13);
+  --text: #e8edf5;
+  --text2: #9aa5bb;
+  --text3: #5a6478;
+  --accent: #00d4aa;
+  --accent2: #00b891;
+  --accent-dim: rgba(0,212,170,.12);
+  --accent-glow: rgba(0,212,170,.25);
+  --gold: #f5c842;
+  --gold-dim: rgba(245,200,66,.12);
+  --red: #ff4d6a;
+  --red-dim: rgba(255,77,106,.12);
+  --blue: #4d8fff;
+  --r: 14px;
+  --r-sm: 8px;
+  --mono: 'Space Mono', monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+
+/* ── NOISE OVERLAY ── */
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:.4}
+
+/* ── SCREENS ── */
+.screen{display:none;flex-direction:column;min-height:100vh;padding-bottom:72px;animation:up .22s ease both;position:relative;z-index:1}
+.screen.active{display:flex}
+@keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* ── LOADING ── */
+.loading-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px;position:relative;z-index:1}
+.logo-pulse{width:64px;height:64px;border-radius:16px;background:var(--accent-dim);border:1px solid var(--accent-glow);display:flex;align-items:center;justify-content:center;animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 var(--accent-glow)}50%{box-shadow:0 0 0 12px transparent}}
+.logo-pulse svg{width:30px;height:30px;color:var(--accent)}
+.loading-text{font-size:13px;color:var(--text3);letter-spacing:.5px}
+
+/* ── TOPBAR ── */
+.topbar{background:rgba(10,12,15,.88);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.tb-logo{display:flex;align-items:center;gap:9px}
+.tb-icon{width:28px;height:28px;border-radius:7px;background:var(--accent-dim);border:1px solid var(--accent-glow);display:flex;align-items:center;justify-content:center}
+.tb-icon svg{width:15px;height:15px;color:var(--accent)}
+.tb-name{font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.2px}
+.tb-name span{color:var(--accent)}
+.tb-right{display:flex;align-items:center;gap:8px}
+.tb-pill{font-size:10px;font-weight:700;letter-spacing:.6px;padding:3px 9px;border-radius:20px;text-transform:uppercase}
+.tb-pill.green{background:var(--accent-dim);color:var(--accent);border:1px solid rgba(0,212,170,.2)}
+.tb-pill.red{background:var(--red-dim);color:var(--red);border:1px solid rgba(255,77,106,.2)}
+.tb-back{background:none;border:none;color:var(--text2);cursor:pointer;padding:4px;display:flex;align-items:center;gap:4px;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:500}
+.tb-back svg{width:16px;height:16px}
+
+/* ── HERO BALANCE ── */
+.hero{padding:24px 16px 20px;border-bottom:1px solid var(--border);position:relative;overflow:hidden}
+.hero::after{content:'';position:absolute;top:-40px;right:-40px;width:160px;height:160px;background:radial-gradient(circle,var(--accent-glow) 0%,transparent 70%);pointer-events:none}
+.bal-lbl{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}
+.bal-num{font-size:38px;font-weight:700;color:var(--text);line-height:1;letter-spacing:-1.5px;margin-bottom:3px}
+.bal-num span{color:var(--accent);font-size:22px;margin-left:4px}
+.bal-sub{font-size:12px;color:var(--text3)}
+.hero-chips{display:flex;gap:6px;margin-top:16px;flex-wrap:wrap}
+.chip{display:flex;align-items:center;gap:5px;padding:7px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;transition:all .15s;flex-shrink:0}
+.chip:active{transform:scale(.95)}
+.chip svg{width:13px;height:13px;color:var(--accent)}
+.chip.primary{background:var(--accent);color:#000;border-color:var(--accent);font-weight:700}
+.chip.primary svg{color:#000}
+
+/* ── SECTIONS ── */
+.sec{padding:16px 16px 0}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.sec-title{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3)}
+.sec-more{font-size:12px;color:var(--accent);font-weight:600;cursor:pointer}
+
+/* ── DEAL CARDS ── */
+.deal-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:8px;cursor:pointer;transition:all .18s;position:relative;overflow:hidden}
+.deal-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px}
+.deal-card.active::before{background:var(--accent)}
+.deal-card.pending::before{background:var(--gold)}
+.deal-card.completed::before{background:var(--blue)}
+.deal-card.cancelled::before{background:var(--red)}
+.deal-card:active{transform:scale(.99);background:var(--surface2)}
+.dc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.dc-id{font-family:var(--mono);font-size:11px;color:var(--text3);font-weight:700}
+.dc-status{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:2px 8px;border-radius:4px}
+.dc-status.active{background:var(--accent-dim);color:var(--accent)}
+.dc-status.pending{background:var(--gold-dim);color:var(--gold)}
+.dc-status.completed{background:rgba(77,143,255,.12);color:var(--blue)}
+.dc-status.cancelled{background:var(--red-dim);color:var(--red)}
+.dc-desc{font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px;line-height:1.3}
+.dc-bot{display:flex;align-items:center;justify-content:space-between}
+.dc-amount{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--accent)}
+.dc-meta{font-size:11px;color:var(--text3)}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:32px 20px;color:var(--text3);background:var(--surface);border:1px dashed var(--border2);border-radius:var(--r);margin-bottom:8px}
+.empty svg{width:28px;height:28px;margin:0 auto 10px;display:block;opacity:.3}
+.empty p{font-size:13px;line-height:1.6}
+
+/* ── STAT GRID ── */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.stat-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px}
+.sb-lbl{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text3);margin-bottom:5px}
+.sb-val{font-size:22px;font-weight:700;color:var(--text)}
+.sb-val.green{color:var(--accent)}
+.sb-val.gold{color:var(--gold)}
+
+/* ── TICKER (новая фича) ── */
+.ticker-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:8px;overflow:hidden;position:relative}
+.ticker-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.ticker-title{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3)}
+.ticker-live{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:var(--accent)}
+.ticker-live-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:blink 1.4s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.rates-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.rates-row::-webkit-scrollbar{display:none}
+.rate-item{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;flex-shrink:0;min-width:90px}
+.ri-pair{font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--text3);margin-bottom:4px}
+.ri-price{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--text);margin-bottom:2px}
+.ri-change{font-size:11px;font-weight:700}
+.ri-change.up{color:var(--accent)}
+.ri-change.dn{color:var(--red)}
+.ri-change.flat{color:var(--text3)}
+
+/* ── NAV BAR ── */
+.nav{position:fixed;bottom:0;left:0;right:0;background:rgba(10,12,15,.94);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--border);display:flex;padding:8px 0 calc(8px + env(safe-area-inset-bottom,0px));z-index:100}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;padding:4px 2px;transition:all .15s}
+.ni-icon{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;background:transparent;transition:all .15s}
+.ni-icon svg{width:16px;height:16px;color:var(--text3);transition:color .15s}
+.nav-item span{font-size:10px;font-weight:600;color:var(--text3);transition:color .15s;letter-spacing:.2px}
+.nav-item.on .ni-icon{background:var(--accent-dim)}
+.nav-item.on .ni-icon svg,.nav-item.on span{color:var(--accent)}
+
+/* ── FORMS ── */
+.form-wrap{padding:16px}
+.form-group{margin-bottom:18px}
+.form-label{display:block;font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text3);margin-bottom:8px}
+.form-input{width:100%;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:13px 14px;font-family:'Space Grotesk',sans-serif;font-size:15px;color:var(--text);outline:none;transition:all .15s;appearance:none;-webkit-appearance:none}
+.form-input:focus{border-color:var(--accent);background:var(--surface2);box-shadow:0 0 0 3px var(--accent-dim)}
+.form-input::placeholder{color:var(--text3)}
+textarea.form-input{resize:none;min-height:80px;line-height:1.5}
+.curr-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.curr-btn{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:12px;text-align:center;cursor:pointer;font-size:13px;font-weight:700;color:var(--text2);transition:all .15s;font-family:'Space Grotesk',sans-serif}
+.curr-btn.on{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
+.curr-btn:active{transform:scale(.96)}
+.submit-btn{width:100%;background:var(--accent);border:none;border-radius:var(--r);padding:15px;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;color:#000;cursor:pointer;letter-spacing:.2px;transition:all .15s;box-shadow:0 6px 20px var(--accent-glow)}
+.submit-btn:active{transform:scale(.98)}
+.submit-btn:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
+.form-hint{font-size:12px;color:var(--text3);line-height:1.6;margin-top:6px}
+
+/* ── DEAL DETAIL ── */
+.deal-hero{padding:20px 16px;border-bottom:1px solid var(--border);background:var(--surface);margin-bottom:0}
+.dh-label{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}
+.dh-amount{font-size:36px;font-weight:700;color:var(--accent);line-height:1;letter-spacing:-1px;margin-bottom:2px}
+.dh-curr{font-size:14px;color:var(--text3)}
+.dh-desc{font-size:16px;font-weight:600;color:var(--text);margin-top:12px;line-height:1.4}
+.info-rows{background:var(--surface);border-top:1px solid var(--border)}
+.info-row{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--border)}
+.info-row:last-child{border-bottom:none}
+.ir-key{font-size:13px;color:var(--text3)}
+.ir-val{font-size:13px;color:var(--text);font-weight:600;text-align:right;max-width:55%}
+.ir-val.mono{font-family:var(--mono);font-size:12px}
+.ir-val.green{color:var(--accent)}
+.ir-val.gold{color:var(--gold)}
+.pay-wrap{padding:14px 16px 0}
+.pay-btn{width:100%;background:var(--accent);border:none;border-radius:var(--r);padding:15px;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;color:#000;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s;box-shadow:0 6px 20px var(--accent-glow)}
+.pay-btn:active{transform:scale(.98)}
+.warn-box{margin:10px 16px 0;background:rgba(245,200,66,.08);border:1px solid rgba(245,200,66,.2);border-radius:8px;padding:11px 13px;font-size:12px;color:var(--gold);line-height:1.5}
+
+/* ── PROFILE ── */
+.profile-top{padding:24px 16px 20px;border-bottom:1px solid var(--border);text-align:center}
+.ava{width:72px;height:72px;border-radius:50%;background:var(--accent-dim);border:2px solid var(--accent-glow);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:var(--accent);margin:0 auto 12px;font-family:var(--mono)}
+.profile-name{font-size:18px;font-weight:700;margin-bottom:3px}
+.profile-id{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.badge-row{display:flex;justify-content:center;gap:6px;margin-top:10px}
+.badge{font-size:10px;font-weight:700;letter-spacing:.4px;padding:3px 10px;border-radius:20px;text-transform:uppercase}
+.badge.gold{background:var(--gold-dim);color:var(--gold);border:1px solid rgba(245,200,66,.2)}
+.badge.green{background:var(--accent-dim);color:var(--accent);border:1px solid rgba(0,212,170,.2)}
+.profile-stat-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:16px 16px 0}
+.ps{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px;text-align:center}
+.ps-num{font-size:20px;font-weight:700;color:var(--accent);font-family:var(--mono)}
+.ps-lbl{font-size:10px;color:var(--text3);margin-top:3px;font-weight:600;letter-spacing:.4px}
+.wallet-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin:14px 16px 0}
+.wc-hdr{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text3);margin-bottom:10px}
+.wc-item{padding:9px 0;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.wc-item:last-child{border-bottom:none}
+.wci-key{font-size:12px;color:var(--text3);flex-shrink:0}
+.wci-val{font-family:var(--mono);font-size:11px;color:var(--text2);text-align:right;word-break:break-all}
+.wci-empty{font-size:12px;color:var(--text3);font-style:italic}
+
+/* ── CALC SCREEN (новая фича) ── */
+.calc-display{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:16px;text-align:right}
+.calc-from{font-size:12px;color:var(--text3);margin-bottom:4px;font-weight:600}
+.calc-to{font-size:28px;font-weight:700;color:var(--accent);font-family:var(--mono);letter-spacing:-1px}
+.calc-rate{font-size:11px;color:var(--text3);margin-top:4px}
+.pair-select{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.pair-btn{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:11px;text-align:center;cursor:pointer;font-size:12px;font-weight:700;color:var(--text2);transition:all .15s;font-family:'Space Grotesk',sans-serif}
+.pair-btn.on{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
+.pair-btn:active{transform:scale(.96)}
+.calc-hint{background:var(--gold-dim);border:1px solid rgba(245,200,66,.18);border-radius:8px;padding:11px 13px;font-size:12px;color:var(--gold);line-height:1.55;margin-top:12px}
+
+/* ── SUCCESS ── */
+.success-screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;text-align:center}
+.success-ring{width:80px;height:80px;border-radius:50%;border:2px solid var(--accent);background:var(--accent-dim);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;box-shadow:0 0 40px var(--accent-glow)}
+.success-ring svg{width:36px;height:36px;color:var(--accent)}
+.success-title{font-size:22px;font-weight:700;margin-bottom:8px;letter-spacing:-.4px}
+.success-sub{font-size:14px;color:var(--text3);line-height:1.6;margin-bottom:24px}
+.link-card{background:var(--surface);border:1.5px solid var(--border2);border-radius:var(--r-sm);padding:13px 14px;width:100%;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;word-break:break-all}
+.link-text{font-family:var(--mono);font-size:11px;color:var(--text2);flex:1;text-align:left}
+.copy-btn{background:var(--accent-dim);border:1px solid var(--accent-glow);border-radius:6px;padding:6px 10px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:var(--accent);font-family:'Space Grotesk',sans-serif;transition:all .15s}
+.copy-btn:active{transform:scale(.95)}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:82px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:10px 18px;font-size:13px;color:var(--text);opacity:0;pointer-events:none;transition:all .25s;z-index:200;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,.4);font-weight:500}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.err{background:var(--red-dim);border-color:rgba(255,77,106,.3);color:var(--red)}
+.toast.ok{background:var(--accent-dim);border-color:var(--accent-glow);color:var(--accent)}
+
+/* ── DIVIDER ── */
+.divider{height:1px;background:var(--border);margin:0 16px}
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<!-- ══ LOADING ══ -->
+<div id="s-loading" class="loading-wrap">
+  <div class="logo-pulse">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+  </div>
+  <div class="loading-text">Загружаем данные...</div>
+</div>
+
+<!-- ══════════════════════════════════════
+     HOME
+══════════════════════════════════════ -->
+<div class="screen" id="s-home">
+  <div class="topbar">
+    <div class="tb-logo">
+      <div class="tb-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <div class="tb-name">GG<span>SEL</span> OTC</div>
+    </div>
+    <div class="tb-right">
+      <div class="tb-pill green" id="api-status">● Online</div>
+    </div>
+  </div>
+
+  <div class="hero">
+    <div class="bal-lbl">Ваш баланс</div>
+    <div class="bal-num" id="home-balance">0 <span>TON</span></div>
+    <div class="bal-sub" id="home-username">Загрузка...</div>
+    <div class="hero-chips">
+      <div class="chip primary" onclick="navTo('s-create',1)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Создать сделку
+      </div>
+      <div class="chip" onclick="showToast('Пополнение через поддержку @GGselrelayer')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 11 12 6 7 11"/><line x1="12" y1="18" x2="12" y2="6"/></svg>
+        Пополнить
+      </div>
+      <div class="chip" onclick="showToast('Вывод через поддержку @GGselrelayer')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="7 13 12 18 17 13"/><line x1="12" y1="6" x2="12" y2="18"/></svg>
+        Вывести
+      </div>
+    </div>
+  </div>
+
+  <!-- Курсы (новая фича) -->
+  <div style="padding:14px 16px 0">
+    <div class="ticker-wrap">
+      <div class="ticker-header">
+        <div class="ticker-title">Курсы крипто</div>
+        <div class="ticker-live"><div class="ticker-live-dot"></div>Live</div>
+      </div>
+      <div class="rates-row" id="rates-row">
+        <div class="rate-item"><div class="ri-pair">TON/USD</div><div class="ri-price" id="r-ton">—</div><div class="ri-change flat" id="rc-ton">—</div></div>
+        <div class="rate-item"><div class="ri-pair">BTC/USD</div><div class="ri-price" id="r-btc">—</div><div class="ri-change flat" id="rc-btc">—</div></div>
+        <div class="rate-item"><div class="ri-pair">ETH/USD</div><div class="ri-price" id="r-eth">—</div><div class="ri-change flat" id="rc-eth">—</div></div>
+        <div class="rate-item"><div class="ri-pair">USDT/RUB</div><div class="ri-price" id="r-usdt">—</div><div class="ri-change flat" id="rc-usdt">—</div></div>
+        <div class="rate-item"><div class="ri-pair">SOL/USD</div><div class="ri-price" id="r-sol">—</div><div class="ri-change flat" id="rc-sol">—</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hdr">
+      <div class="sec-title">Мои сделки</div>
+      <div class="sec-more" onclick="navTo('s-deals',1)">Все →</div>
+    </div>
+    <div id="home-deals"></div>
+  </div>
+
+  <div class="sec" style="padding-bottom:16px">
+    <div class="stat-grid">
+      <div class="stat-box"><div class="sb-lbl">Завершено</div><div class="sb-val green" id="stat-done">0</div></div>
+      <div class="stat-box"><div class="sb-lbl">Потрачено</div><div class="sb-val gold" id="stat-spent">0</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     DEALS LIST
+══════════════════════════════════════ -->
+<div class="screen" id="s-deals">
+  <div class="topbar">
+    <button class="tb-back" onclick="navBack()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      Назад
+    </button>
+    <div class="tb-name" style="font-size:13px">Все сделки</div>
+    <div style="width:60px"></div>
+  </div>
+  <div style="padding:14px 16px" id="all-deals-list"></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     CREATE DEAL
+══════════════════════════════════════ -->
+<div class="screen" id="s-create">
+  <div class="topbar">
+    <button class="tb-back" onclick="navBack()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      Назад
+    </button>
+    <div class="tb-name" style="font-size:13px">Новая сделка</div>
+    <div style="width:60px"></div>
+  </div>
+  <div class="form-wrap">
+    <div class="form-group">
+      <label class="form-label">Валюта</label>
+      <div class="curr-row">
+        <div class="curr-btn on" id="cb-TON" onclick="selCurr('TON')">TON</div>
+        <div class="curr-btn" id="cb-USDT" onclick="selCurr('USDT')">USDT</div>
+        <div class="curr-btn" id="cb-RUB" onclick="selCurr('RUB')">RUB</div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Сумма</label>
+      <input class="form-input" id="deal-amount" type="number" inputmode="decimal" placeholder="0.00" min="0.01">
+      <div class="form-hint">Введите точную сумму сделки</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Описание товара</label>
+      <textarea class="form-input" id="deal-desc" rows="3" placeholder="Например: 5000 Telegram Stars, NFT #1234, Аккаунт Steam..."></textarea>
+    </div>
+    <button class="submit-btn" id="create-btn" onclick="createDeal()">Создать сделку</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     DEAL DETAIL
+══════════════════════════════════════ -->
+<div class="screen" id="s-deal">
+  <div class="topbar">
+    <button class="tb-back" onclick="navBack()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      Назад
+    </button>
+    <div class="tb-name" style="font-size:13px">Сделка</div>
+    <div style="width:60px"></div>
+  </div>
+  <div id="deal-detail-body"></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SUCCESS
+══════════════════════════════════════ -->
+<div class="screen" id="s-success">
+  <div class="topbar">
+    <button class="tb-back" onclick="navTo('s-home',0)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      Главная
+    </button>
+    <div class="tb-name" style="font-size:13px;color:var(--accent)">Готово</div>
+    <div style="width:60px"></div>
+  </div>
+  <div class="success-screen">
+    <div class="success-ring">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <div class="success-title">Сделка создана</div>
+    <div class="success-sub" id="success-sub">Отправьте ссылку покупателю.<br>Средства защищены эскроу.</div>
+    <div class="link-card">
+      <div class="link-text" id="success-link">—</div>
+      <button class="copy-btn" onclick="copyLink()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Копировать
+      </button>
+    </div>
+    <button class="submit-btn" onclick="shareLink()" style="margin-top:4px">Поделиться ссылкой</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     CALCULATOR (новая убийственная фича)
+══════════════════════════════════════ -->
+<div class="screen" id="s-calc">
+  <div class="topbar">
+    <div class="tb-logo">
+      <div class="tb-name" style="font-size:13px">Конвертер</div>
+    </div>
+    <div class="tb-pill green" id="calc-status">Live</div>
+  </div>
+  <div class="form-wrap">
+    <div class="calc-display">
+      <div class="calc-from">Вы получите:</div>
+      <div class="calc-to" id="calc-result">—</div>
+      <div class="calc-rate" id="calc-rate-lbl">Введите сумму</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Сумма</label>
+      <input class="form-input" id="calc-amount" type="number" inputmode="decimal" placeholder="0.00" oninput="calcConvert()">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Направление конвертации</label>
+      <div class="pair-select" id="pair-select">
+        <div class="pair-btn on" data-from="TON" data-to="USD" onclick="selPair(this)">TON → USD</div>
+        <div class="pair-btn" data-from="USD" data-to="TON" onclick="selPair(this)">USD → TON</div>
+        <div class="pair-btn" data-from="TON" data-to="RUB" onclick="selPair(this)">TON → RUB</div>
+        <div class="pair-btn" data-from="USDT" data-to="RUB" onclick="selPair(this)">USDT → RUB</div>
+        <div class="pair-btn" data-from="BTC" data-to="USD" onclick="selPair(this)">BTC → USD</div>
+        <div class="pair-btn" data-from="ETH" data-to="USD" onclick="selPair(this)">ETH → USD</div>
+      </div>
+    </div>
+    <div class="calc-hint">
+      Курсы обновляются каждые 30 секунд с биржи CoinGecko. Используйте только для ориентира — итоговый курс фиксируется в момент создания сделки.
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PROFILE
+══════════════════════════════════════ -->
+<div class="screen" id="s-profile">
+  <div class="topbar">
+    <div class="tb-name" style="font-size:13px">Профиль</div>
+  </div>
+  <div class="profile-top">
+    <div class="ava" id="prof-ava">?</div>
+    <div class="profile-name" id="prof-name">Загрузка...</div>
+    <div class="profile-id" id="prof-id">ID: —</div>
+    <div class="badge-row">
+      <div class="badge gold">Трейдер</div>
+      <div class="badge green" id="prof-rating">0 сделок</div>
+    </div>
+  </div>
+  <div class="profile-stat-row">
+    <div class="ps"><div class="ps-num" id="ps-deals">0</div><div class="ps-lbl">Сделок</div></div>
+    <div class="ps"><div class="ps-num" id="ps-balance">0</div><div class="ps-lbl">Баланс</div></div>
+    <div class="ps"><div class="ps-num" id="ps-spent">0</div><div class="ps-lbl">Потрачено</div></div>
+  </div>
+  <div class="wallet-card">
+    <div class="wc-hdr">Реквизиты</div>
+    <div class="wc-item">
+      <div class="wci-key">Крипто</div>
+      <div id="wc-crypto" class="wci-val">—</div>
+    </div>
+    <div class="wc-item">
+      <div class="wci-key">СБП</div>
+      <div id="wc-sbp" class="wci-val">—</div>
+    </div>
+  </div>
+  <div style="padding:14px 16px">
+    <button class="submit-btn" onclick="Telegram.WebApp.openTelegramLink('https://t.me/GGselrelayer')" style="background:var(--surface);color:var(--text);border:1px solid var(--border2);box-shadow:none;margin-bottom:8px">
+      Поддержка @GGselrelayer
+    </button>
+    <button class="submit-btn" onclick="Telegram.WebApp.openTelegramLink('https://telegra.ph/GGsel--Usloviya-05-28')" style="background:var(--surface);color:var(--text3);border:1px solid var(--border);box-shadow:none;font-size:13px;padding:12px">
+      Пользовательское соглашение
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     NAV BAR
+══════════════════════════════════════ -->
+<div class="nav" id="main-nav">
+  <div class="nav-item on" id="nav-home" onclick="navTab('s-home','nav-home')">
+    <div class="ni-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+    <span>Главная</span>
+  </div>
+  <div class="nav-item" id="nav-deals" onclick="openDealsTab()">
+    <div class="ni-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+    <span>Сделки</span>
+  </div>
+  <div class="nav-item" id="nav-calc" onclick="navTab('s-calc','nav-calc')">
+    <div class="ni-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="9" y2="10"/><line x1="12" y1="10" x2="13" y2="10"/><line x1="16" y1="10" x2="17" y2="10"/><line x1="8" y1="14" x2="9" y2="14"/><line x1="12" y1="14" x2="13" y2="14"/><line x1="16" y1="14" x2="17" y2="14"/><line x1="8" y1="18" x2="9" y2="18"/><line x1="12" y1="18" x2="13" y2="18"/><line x1="16" y1="18" x2="17" y2="14"/></svg></div>
+    <span>Конвертер</span>
+  </div>
+  <div class="nav-item" id="nav-profile" onclick="navTab('s-profile','nav-profile')">
+    <div class="ni-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+    <span>Профиль</span>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════
+// КОНФИГУРАЦИЯ
+// ════════════════════════════════
+const API_BASE = "https://ggsel-otc-bot.onrender.com";
+
+const tg = window.Telegram?.WebApp;
+if (tg) {
+  tg.ready();
+  tg.expand();
+  if (tg.setHeaderColor) tg.setHeaderColor("#0a0c0f");
+  if (tg.setBackgroundColor) tg.setBackgroundColor("#0a0c0f");
+}
+
+// ════════════════════════════════
+// СОСТОЯНИЕ
+// ════════════════════════════════
+let STATE = {
+  user: null,
+  deals: [],
+  currency: "TON",
+  rates: {},
+  calcPair: { from: "TON", to: "USD" },
+  selectedDeal: null,
+  createdLink: "",
+  stack: [],
+};
+
+// ════════════════════════════════
+// НАВИГАЦИЯ
+// ════════════════════════════════
+const NAV_SCREENS = ["s-home","s-deals","s-create","s-deal","s-success","s-calc","s-profile"];
+const NAV_HIDE = ["s-create","s-deal","s-success","s-deals"];
+
+function navTo(id, push=1) {
+  NAV_SCREENS.forEach(s => document.getElementById(s).classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  document.getElementById("main-nav").style.display = NAV_HIDE.includes(id) ? "none" : "flex";
+  if (push) STATE.stack.push(id);
+}
+
+function navBack() {
+  STATE.stack.pop();
+  const prev = STATE.stack[STATE.stack.length-1] || "s-home";
+  NAV_SCREENS.forEach(s => document.getElementById(s).classList.remove("active"));
+  document.getElementById(prev).classList.add("active");
+  document.getElementById("main-nav").style.display = NAV_HIDE.includes(prev) ? "none" : "flex";
+}
+
+function navTab(id, navId) {
+  NAV_SCREENS.forEach(s => document.getElementById(s).classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("on"));
+  document.getElementById(id).classList.add("active");
+  document.getElementById(navId).classList.add("on");
+  document.getElementById("main-nav").style.display = "flex";
+  STATE.stack = [id];
+}
+
+function openDealsTab() {
+  renderAllDeals();
+  navTab("s-deals","nav-deals");
+}
+
+// ════════════════════════════════
+// API
+// ════════════════════════════════
+function getInitData() {
+  return tg?.initData || "";
+}
+
+async function apiFetch(path, opts={}) {
+  const res = await fetch(API_BASE + path, {
+    ...opts,
+    headers: {
+      "Content-Type": "application/json",
+      "X-Telegram-Init-Data": getInitData(),
+      ...(opts.headers||{}),
+    },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(()=>({error:"Network error"}));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// ════════════════════════════════
+// ЗАГРУЗКА ДАННЫХ
+// ════════════════════════════════
+async function loadUser() {
+  try {
+    const data = await apiFetch("/api/me");
+    STATE.user = data.user;
+    STATE.deals = data.deals || [];
+    renderHome();
+    renderProfile();
+    setApiStatus(true);
+  } catch(e) {
+    console.error("loadUser:", e);
+    setApiStatus(false);
+    // Показываем заглушку если нет initData (открыли не из Telegram)
+    if (!getInitData()) {
+      STATE.user = {
+        user_id: 0, username: "Demo", first_name: "Demo",
+        balance: 0, successful_deals: 0, total_spent: 0,
+        currency: "TON", wallet_crypto: "", wallet_sbp: ""
+      };
+      STATE.deals = [];
+      renderHome();
+      renderProfile();
+    }
+  }
+}
+
+function setApiStatus(ok) {
+  const el = document.getElementById("api-status");
+  if (!el) return;
+  if (ok) {
+    el.textContent = "● Online";
+    el.className = "tb-pill green";
+  } else {
+    el.textContent = "● Offline";
+    el.className = "tb-pill red";
+  }
+}
+
+// ════════════════════════════════
+// РЕНДЕР: HOME
+// ════════════════════════════════
+function renderHome() {
+  const u = STATE.user;
+  if (!u) return;
+  const curr = u.currency || "TON";
+  document.getElementById("home-balance").innerHTML = `${u.balance.toFixed(2)} <span>${curr}</span>`;
+  document.getElementById("home-username").textContent = `@${u.username || u.first_name || "—"}`;
+  document.getElementById("stat-done").textContent = u.successful_deals || 0;
+  document.getElementById("stat-spent").textContent = `${(u.total_spent||0).toFixed(2)}`;
+
+  const container = document.getElementById("home-deals");
+  const recent = STATE.deals.slice(0, 3);
+  if (!recent.length) {
+    container.innerHTML = `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/></svg><p>Сделок пока нет.<br>Создайте первую!</p></div>`;
+    return;
+  }
+  container.innerHTML = recent.map(d => dealCardHTML(d)).join("");
+}
+
+function renderAllDeals() {
+  const container = document.getElementById("all-deals-list");
+  if (!STATE.deals.length) {
+    container.innerHTML = `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/></svg><p>Сделок пока нет</p></div>`;
+    return;
+  }
+  container.innerHTML = STATE.deals.map(d => dealCardHTML(d)).join("");
+}
+
+function dealCardHTML(d) {
+  const STATUS_LABEL = {active:"Активна",pending_confirm:"Ожидает",completed:"Завершена",cancelled:"Отменена",waiting:"Ожидает"};
+  const STATUS_CLS   = {active:"active",pending_confirm:"pending",completed:"completed",cancelled:"cancelled",waiting:"pending"};
+  const st = STATUS_CLS[d.status] || "active";
+  const lbl = STATUS_LABEL[d.status] || d.status;
+  return `<div class="deal-card ${st}" onclick="openDeal('${d.deal_id}')">
+    <div class="dc-top">
+      <div class="dc-id">#${d.deal_id}</div>
+      <div class="dc-status ${st}">${lbl}</div>
+    </div>
+    <div class="dc-desc">${escHtml(d.description)}</div>
+    <div class="dc-bot">
+      <div class="dc-amount">${d.amount} ${d.currency}</div>
+      <div class="dc-meta">${d.is_seller?"Я продавец":"Я покупатель"}</div>
+    </div>
+  </div>`;
+}
+
+// ════════════════════════════════
+// РЕНДЕР: PROFILE
+// ════════════════════════════════
+function renderProfile() {
+  const u = STATE.user;
+  if (!u) return;
+  const initials = (u.first_name || u.username || "?")[0].toUpperCase();
+  document.getElementById("prof-ava").textContent = initials;
+  document.getElementById("prof-name").textContent = u.first_name || u.username || "—";
+  document.getElementById("prof-id").textContent = `ID: ${u.user_id || "—"}`;
+  document.getElementById("prof-rating").textContent = `${u.successful_deals||0} сделок`;
+  document.getElementById("ps-deals").textContent = u.successful_deals||0;
+  document.getElementById("ps-balance").textContent = (u.balance||0).toFixed(2);
+  document.getElementById("ps-spent").textContent = (u.total_spent||0).toFixed(0);
+  document.getElementById("wc-crypto").textContent = u.wallet_crypto || "—";
+  document.getElementById("wc-crypto").className = u.wallet_crypto ? "wci-val" : "wci-empty";
+  document.getElementById("wc-sbp").textContent = u.wallet_sbp || "—";
+  document.getElementById("wc-sbp").className = u.wallet_sbp ? "wci-val" : "wci-empty";
+}
+
+// ════════════════════════════════
+// ОТКРЫТЬ СДЕЛКУ
+// ════════════════════════════════
+async function openDeal(dealId) {
+  navTo("s-deal", 1);
+  const body = document.getElementById("deal-detail-body");
+  body.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text3)">Загрузка...</div>`;
+
+  try {
+    const d = await apiFetch(`/api/deals/${dealId}`);
+    STATE.selectedDeal = d;
+
+    const STATUS_LABEL = {active:"Активна",pending_confirm:"Ожидает подтверждения",completed:"Завершена",cancelled:"Отменена",waiting:"Ожидает"};
+    const STATUS_CLS   = {active:"active",pending_confirm:"pending",completed:"completed",cancelled:"cancelled",waiting:"pending"};
+    const st = STATUS_CLS[d.status] || "active";
+    const lbl = STATUS_LABEL[d.status] || d.status;
+
+    const canPay = d.status === "active" && !d.is_seller;
+    const balance = STATE.user?.balance || 0;
+    const hasBalance = balance >= d.amount;
+
+    body.innerHTML = `
+      <div class="deal-hero">
+        <div class="dh-label">Сделка #${d.deal_id}</div>
+        <div class="dh-amount">${d.amount}</div>
+        <div class="dh-curr">${d.currency}</div>
+        <div class="dh-desc">${escHtml(d.description)}</div>
+      </div>
+      <div class="info-rows">
+        <div class="info-row"><div class="ir-key">Статус</div><div class="ir-val"><span class="dc-status ${st}">${lbl}</span></div></div>
+        <div class="info-row"><div class="ir-key">Продавец</div><div class="ir-val">@${escHtml(d.seller_username)}</div></div>
+        <div class="info-row"><div class="ir-key">Рейтинг</div><div class="ir-val green">${(d.seller_rating||0)} сделок</div></div>
+        <div class="info-row"><div class="ir-key">Ваш баланс</div><div class="ir-val ${hasBalance?'green':''}">${balance.toFixed(2)} TON</div></div>
+        ${d.buyer_id ? `<div class="info-row"><div class="ir-key">Покупатель</div><div class="ir-val">${d.is_buyer?"Вы":"ID: "+d.buyer_id}</div></div>` : ""}
+      </div>
+      ${canPay ? `
+        <div class="pay-wrap">
+          ${!hasBalance ? `<div class="warn-box">Недостаточно средств. Пополните баланс через @GGselrelayer.</div>` : ""}
+          <button class="pay-btn" ${!hasBalance?"disabled":""} onclick="payDeal('${d.deal_id}')" style="margin-top:${!hasBalance?'10px':'14px'}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            Оплатить из баланса
+          </button>
+        </div>
+      ` : (d.is_seller && d.status === "active") ? `
+        <div class="warn-box" style="margin:14px 16px 0">
+          Ваша сделка активна. Отправьте ссылку покупателю:
+          <div style="margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+            <span style="font-family:var(--mono);font-size:11px;word-break:break-all">${getBotLink(d.deal_id)}</span>
+            <button class="copy-btn" onclick="navigator.clipboard.writeText('${getBotLink(d.deal_id)}').then(()=>showToast('Скопировано!','ok'))">Копировать</button>
+          </div>
+        </div>
+      ` : ""}
+      <div style="height:20px"></div>
+    `;
+  } catch(e) {
+    body.innerHTML = `<div style="padding:40px;text-align:center;color:var(--red)">Ошибка: ${escHtml(e.message)}</div>`;
+  }
+}
+
+async function payDeal(dealId) {
+  try {
+    const res = await apiFetch(`/api/deals/${dealId}/pay`, {method:"POST"});
+    showToast("Оплата прошла! Ожидайте подтверждения.", "ok");
+    await loadUser();
+    navBack();
+  } catch(e) {
+    showToast(e.message, "err");
+  }
+}
+
+// ════════════════════════════════
+// СОЗДАТЬ СДЕЛКУ
+// ════════════════════════════════
+function selCurr(c) {
+  ["TON","USDT","RUB"].forEach(x => {
+    document.getElementById("cb-"+x).classList.toggle("on", x===c);
+  });
+  STATE.currency = c;
+}
+
+async function createDeal() {
+  const amount = parseFloat(document.getElementById("deal-amount").value.replace(",","."));
+  const desc = document.getElementById("deal-desc").value.trim();
+  const btn = document.getElementById("create-btn");
+
+  if (!amount || amount <= 0) { showToast("Введите корректную сумму","err"); return; }
+  if (!desc) { showToast("Укажите описание товара","err"); return; }
+
+  btn.disabled = true;
+  btn.textContent = "Создаём...";
+
+  try {
+    const res = await apiFetch("/api/deals/create", {
+      method: "POST",
+      body: JSON.stringify({ amount, description: desc, currency: STATE.currency }),
+    });
+
+    STATE.createdLink = res.link;
+    document.getElementById("success-link").textContent = res.link;
+    document.getElementById("success-sub").textContent = `Сделка #${res.deal_id} · ${res.amount} ${res.currency}\nОтправьте ссылку покупателю.`;
+
+    // Сбрасываем форму
+    document.getElementById("deal-amount").value = "";
+    document.getElementById("deal-desc").value = "";
+
+    await loadUser();
+    navTo("s-success", 1);
+  } catch(e) {
+    showToast(e.message || "Ошибка создания сделки", "err");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Создать сделку";
+  }
+}
+
+function copyLink() {
+  navigator.clipboard.writeText(STATE.createdLink).then(() => showToast("Ссылка скопирована!", "ok"));
+}
+
+function shareLink() {
+  if (tg?.switchInlineQuery) {
+    tg.switchInlineQuery(STATE.createdLink);
+  } else if (navigator.share) {
+    navigator.share({ text: STATE.createdLink });
+  } else {
+    copyLink();
+  }
+}
+
+function getBotLink(dealId) {
+  return `https://t.me/GGselOTC_Bot?start=${dealId}`;
+}
+
+// ════════════════════════════════
+// КУРСЫ ВАЛЮТ (CoinGecko, бесплатный API)
+// ════════════════════════════════
+async function fetchRates() {
+  try {
+    const url = "https://api.coingecko.com/api/v3/simple/price?ids=the-open-network,bitcoin,ethereum,tether,solana&vs_currencies=usd,rub&include_24hr_change=true";
+    const res = await fetch(url);
+    const data = await res.json();
+    STATE.rates = {
+      TON_USD: data["the-open-network"]?.usd,
+      TON_RUB: data["the-open-network"]?.rub,
+      TON_change: data["the-open-network"]?.usd_24h_change,
+      BTC_USD: data["bitcoin"]?.usd,
+      BTC_change: data["bitcoin"]?.usd_24h_change,
+      ETH_USD: data["ethereum"]?.usd,
+      ETH_change: data["ethereum"]?.usd_24h_change,
+      USDT_RUB: data["tether"]?.rub,
+      USDT_change: data["tether"]?.rub_24h_change,
+      SOL_USD: data["solana"]?.usd,
+      SOL_change: data["solana"]?.usd_24h_change,
+    };
+    renderRates();
+    calcConvert();
+  } catch(e) {
+    console.warn("Rates fetch error:", e);
+  }
+}
+
+function renderRates() {
+  const r = STATE.rates;
+  function fmt(v, prefix="$") {
+    if (!v) return "—";
+    if (v > 1000) return prefix + v.toLocaleString("en",{maximumFractionDigits:0});
+    return prefix + v.toLocaleString("en",{minimumFractionDigits:2,maximumFractionDigits:2});
+  }
+  function chg(v) {
+    if (v == null) return ["—","flat"];
+    const s = (v >= 0 ? "+" : "") + v.toFixed(2) + "%";
+    return [s, v >= 0 ? "up" : "dn"];
+  }
+
+  set("r-ton",  fmt(r.TON_USD));  setChg("rc-ton",  chg(r.TON_change));
+  set("r-btc",  fmt(r.BTC_USD));  setChg("rc-btc",  chg(r.BTC_change));
+  set("r-eth",  fmt(r.ETH_USD));  setChg("rc-eth",  chg(r.ETH_change));
+  set("r-usdt", fmt(r.USDT_RUB,"₽")); setChg("rc-usdt", chg(r.USDT_change));
+  set("r-sol",  fmt(r.SOL_USD));  setChg("rc-sol",  chg(r.SOL_change));
+}
+
+function set(id,v){const e=document.getElementById(id);if(e)e.textContent=v}
+function setChg(id,[v,cls]){const e=document.getElementById(id);if(e){e.textContent=v;e.className="ri-change "+cls}}
+
+// ════════════════════════════════
+// КОНВЕРТЕР
+// ════════════════════════════════
+function selPair(el) {
+  document.querySelectorAll(".pair-btn").forEach(b => b.classList.remove("on"));
+  el.classList.add("on");
+  STATE.calcPair = { from: el.dataset.from, to: el.dataset.to };
+  calcConvert();
+}
+
+function calcConvert() {
+  const amount = parseFloat(document.getElementById("calc-amount")?.value) || 0;
+  const { from, to } = STATE.calcPair;
+  const r = STATE.rates;
+
+  const priceMap = {
+    "TON_USD": r.TON_USD, "USD_TON": r.TON_USD ? 1/r.TON_USD : null,
+    "TON_RUB": r.TON_RUB, "USDT_RUB": r.USDT_RUB,
+    "BTC_USD": r.BTC_USD, "ETH_USD": r.ETH_USD,
+    "SOL_USD": r.SOL_USD,
+  };
+
+  const rate = priceMap[`${from}_${to}`];
+  const resEl = document.getElementById("calc-result");
+  const rateLbl = document.getElementById("calc-rate-lbl");
+
+  if (!rate) {
+    resEl.textContent = "Нет данных";
+    rateLbl.textContent = "Курс недоступен";
+    return;
+  }
+
+  const result = amount * rate;
+  const symbol = to === "RUB" ? "₽" : to === "USD" ? "$" : to;
+  resEl.textContent = amount > 0 ? `${result.toLocaleString("en",{maximumFractionDigits:4})} ${symbol}` : "—";
+  rateLbl.textContent = `1 ${from} = ${rate.toLocaleString("en",{maximumFractionDigits:4})} ${symbol}`;
+}
+
+// ════════════════════════════════
+// УТИЛИТЫ
+// ════════════════════════════════
+let toastTimer;
+function showToast(msg, type="") {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.className = "toast show" + (type ? " "+type : "");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 2800);
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+// ════════════════════════════════
+// INIT
+// ════════════════════════════════
+async function init() {
+  document.getElementById("s-loading").style.display = "flex";
+
+  // Проверяем health
+  let apiOk = false;
+  try {
+    const h = await fetch(API_BASE + "/api/health", {signal: AbortSignal.timeout(5000)});
+    apiOk = h.ok;
+  } catch {}
+  setApiStatus(apiOk);
+
+  // Загружаем данные
+  await loadUser();
+
+  // Загружаем курсы
+  fetchRates();
+  setInterval(fetchRates, 30000);
+
+  // Скрываем загрузку, показываем home
+  document.getElementById("s-loading").style.display = "none";
+  navTo("s-home", 0);
+  STATE.stack = ["s-home"];
+}
+
+init();
+</script>
+</body>
+</html>
