@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>GGSEL OTC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --g50:#EAF3DE;--g100:#C0DD97;--g200:#97C459;--g400:#639922;--g600:#3B6D11;--g800:#27500A;--g900:#173404;
+  --a50:#FAEEDA;--a100:#FAC775;--a400:#BA7517;--a800:#633806;
+  --bg:#0f1a0a;--bg2:#162010;--bg3:#1d2a14;--surface:#1f2e15;--surface2:#263618;
+  --border:rgba(144,200,80,.13);--border2:rgba(144,200,80,.22);
+  --text:#e8f5d4;--text2:#9fc45a;--text3:#5a7a2e;
+  --accent:#7ec832;--accent2:#5aab1a;
+  --radius:14px;--radius-sm:9px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:'Golos Text',sans-serif;font-size:15px;min-height:100vh;overflow-x:hidden}
+.mono{font-family:'JetBrains Mono',monospace}
+
+/* ── screens ── */
+.screen{display:none;flex-direction:column;min-height:100vh;padding-bottom:80px;animation:fadeIn .22s ease}
+.screen.active{display:flex}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ── header ── */
+.hdr{background:var(--bg2);border-bottom:0.5px solid var(--border);padding:14px 18px 12px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.hdr-logo{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600;color:var(--accent)}
+.hdr-logo svg{width:22px;height:22px}
+.hdr-badge{font-size:11px;background:rgba(94,171,26,.18);color:var(--g200);border:0.5px solid rgba(94,171,26,.3);padding:3px 10px;border-radius:20px}
+.hdr-back{background:none;border:none;color:var(--text2);font-size:14px;cursor:pointer;display:flex;align-items:center;gap:5px;font-family:'Golos Text',sans-serif}
+
+/* ── balance hero ── */
+.hero{background:var(--bg2);padding:20px 18px 22px;border-bottom:0.5px solid var(--border);margin-bottom:16px}
+.bal-label{font-size:12px;color:var(--text3);margin-bottom:4px;letter-spacing:.4px;text-transform:uppercase}
+.bal-amount{font-size:36px;font-weight:600;color:var(--text);line-height:1.1;margin-bottom:2px}
+.bal-sub{font-size:13px;color:var(--text3)}
+.hero-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:16px}
+.hero-btn{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:10px 8px;text-align:center;cursor:pointer;transition:background .15s,border-color .15s}
+.hero-btn:hover{background:var(--surface2);border-color:var(--border2)}
+.hero-btn svg{width:18px;height:18px;color:var(--accent);display:block;margin:0 auto 5px}
+.hero-btn span{font-size:12px;color:var(--text2)}
+
+/* ── section ── */
+.sec{padding:0 16px;margin-bottom:18px}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.sec-title{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.6px}
+.sec-cnt{font-size:12px;color:var(--accent);font-weight:500}
+
+/* ── deal card ── */
+.deal{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:13px 14px;margin-bottom:8px;cursor:pointer;transition:border-color .15s,background .15s}
+.deal:hover{background:var(--surface2);border-color:var(--border2)}
+.deal:active{transform:scale(.99)}
+.deal-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+.deal-id{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace}
+.pill{font-size:11px;padding:2px 9px;border-radius:20px;font-weight:500}
+.pill-active{background:rgba(94,171,26,.15);color:#a3d96a;border:0.5px solid rgba(94,171,26,.25)}
+.pill-wait{background:rgba(186,117,23,.15);color:#e8a84a;border:0.5px solid rgba(186,117,23,.25)}
+.pill-done{background:rgba(255,255,255,.05);color:var(--text3);border:0.5px solid var(--border)}
+.deal-desc{font-size:14px;font-weight:500;color:var(--text);margin-bottom:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.deal-footer{display:flex;align-items:center;justify-content:space-between}
+.deal-amt{font-size:16px;font-weight:600;color:var(--accent)}
+.deal-info{display:flex;align-items:center;gap:10px}
+.deal-user{font-size:12px;color:var(--text3)}
+.deal-time{font-size:11px;color:var(--text3);opacity:.7}
+
+/* ── stats grid ── */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px}
+.stat-lbl{font-size:11px;color:var(--text3);margin-bottom:5px}
+.stat-val{font-size:20px;font-weight:600;color:var(--text)}
+.stat-val.g{color:var(--accent)}
+
+/* ── big create btn ── */
+.create-fab{margin:0 16px;background:var(--accent2);border:none;border-radius:var(--radius);padding:15px;width:calc(100% - 32px);font-family:'Golos Text',sans-serif;font-size:15px;font-weight:600;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s;letter-spacing:.2px}
+.create-fab:hover{background:var(--accent)}
+.create-fab svg{width:18px;height:18px}
+
+/* ── nav ── */
+.nav{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:0.5px solid var(--border);display:flex;padding:8px 0 12px;z-index:20}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;padding:4px;transition:opacity .15s}
+.nav-item svg{width:22px;height:22px;color:var(--text3);transition:color .15s}
+.nav-item span{font-size:10px;color:var(--text3);transition:color .15s}
+.nav-item.on svg,.nav-item.on span{color:var(--accent)}
+
+/* ── form screen ── */
+.form-body{padding:16px;flex:1}
+.form-group{margin-bottom:16px}
+.form-label{font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:7px;display:block}
+.form-input{width:100%;background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;font-family:'Golos Text',sans-serif;font-size:15px;color:var(--text);outline:none;transition:border-color .15s}
+.form-input:focus{border-color:var(--border2)}
+.form-input::placeholder{color:var(--text3)}
+.currency-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.currency-btn{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:10px;text-align:center;cursor:pointer;font-size:14px;font-weight:500;color:var(--text2);transition:all .15s;font-family:'Golos Text',sans-serif}
+.currency-btn.sel{background:rgba(94,171,26,.18);border-color:var(--accent2);color:var(--accent)}
+.submit-btn{width:100%;background:var(--accent2);border:none;border-radius:var(--radius);padding:15px;font-family:'Golos Text',sans-serif;font-size:15px;font-weight:600;color:#fff;cursor:pointer;margin-top:8px;transition:background .15s}
+.submit-btn:hover{background:var(--accent)}
+.form-hint{font-size:12px;color:var(--text3);margin-top:6px;line-height:1.5}
+
+/* ── deal detail ── */
+.detail-hero{background:var(--bg2);border-bottom:0.5px solid var(--border);padding:20px 18px 22px;margin-bottom:16px}
+.detail-label{font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.detail-desc{font-size:20px;font-weight:600;color:var(--text);margin-bottom:14px;line-height:1.3}
+.detail-amount{font-size:32px;font-weight:600;color:var(--accent);margin-bottom:4px}
+.detail-currency{font-size:13px;color:var(--text3)}
+.detail-rows{padding:0 16px}
+.detail-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:0.5px solid var(--border)}
+.detail-row:last-child{border-bottom:none}
+.dr-key{font-size:13px;color:var(--text3)}
+.dr-val{font-size:13px;color:var(--text);font-weight:500;text-align:right}
+.dr-val.mono{font-family:'JetBrains Mono',monospace;font-size:12px}
+.dr-val.green{color:var(--accent)}
+.pay-btn{margin:16px 16px 0;width:calc(100% - 32px);background:var(--accent2);border:none;border-radius:var(--radius);padding:15px;font-family:'Golos Text',sans-serif;font-size:15px;font-weight:600;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s}
+.pay-btn:hover{background:var(--accent)}
+.warn-box{margin:12px 16px 0;background:rgba(186,117,23,.1);border:0.5px solid rgba(186,117,23,.25);border-radius:var(--radius-sm);padding:12px 14px;font-size:12px;color:#e8a84a;line-height:1.5}
+
+/* ── profile ── */
+.profile-body{padding:16px}
+.avatar{width:64px;height:64px;border-radius:50%;background:rgba(94,171,26,.2);border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:600;color:var(--accent);margin:0 auto 10px}
+.profile-name{text-align:center;font-size:18px;font-weight:600;color:var(--text);margin-bottom:4px}
+.profile-id{text-align:center;font-size:12px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-bottom:20px}
+.profile-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:20px}
+.ps{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:10px;text-align:center}
+.ps-val{font-size:18px;font-weight:600;color:var(--accent)}
+.ps-lbl{font-size:11px;color:var(--text3);margin-top:2px}
+.wallet-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px}
+.wc-title{font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px}
+.wc-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--border)}
+.wc-row:last-child{border-bottom:none}
+.wc-key{font-size:13px;color:var(--text3)}
+.wc-val{font-size:13px;color:var(--text2);font-family:'JetBrains Mono',monospace;font-size:12px}
+.wc-empty{font-size:13px;color:var(--text3);font-style:italic}
+.edit-btn{width:100%;background:var(--surface);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:12px;font-family:'Golos Text',sans-serif;font-size:14px;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:8px;transition:background .15s}
+.edit-btn:hover{background:var(--surface2)}
+.edit-btn svg{width:16px;height:16px}
+
+/* ── toast ── */
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:10px 18px;font-size:13px;color:var(--text);opacity:0;pointer-events:none;transition:all .3s;z-index:100;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── success screen ── */
+.success-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;text-align:center}
+.success-icon{width:72px;height:72px;border-radius:50%;background:rgba(94,171,26,.2);border:2px solid var(--accent2);display:flex;align-items:center;justify-content:center;margin:0 auto 20px}
+.success-icon svg{width:32px;height:32px;color:var(--accent)}
+.success-title{font-size:22px;font-weight:600;color:var(--text);margin-bottom:8px}
+.success-sub{font-size:14px;color:var(--text3);line-height:1.6;margin-bottom:24px}
+.link-box{background:var(--surface);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:12px 14px;width:100%;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.link-text{font-size:12px;color:var(--text2);font-family:'JetBrains Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.copy-btn{background:none;border:none;color:var(--accent);cursor:pointer;flex-shrink:0}
+.copy-btn svg{width:18px;height:18px}
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<!-- ══════════ HOME ══════════ -->
+<div class="screen active" id="s-home">
+  <div class="hdr">
+    <div class="hdr-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      GGSEL OTC
+    </div>
+    <span class="hdr-badge">● Работает</span>
+  </div>
+
+  <div class="hero">
+    <div class="bal-label">Баланс гаранта</div>
+    <div class="bal-amount" id="home-balance">3 480 TON</div>
+    <div class="bal-sub">≈ 28 900 ₽ · 4 сделки</div>
+    <div class="hero-actions">
+      <div class="hero-btn" onclick="go('s-create')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <span>Создать</span>
+      </div>
+      <div class="hero-btn" onclick="toast('Пополнение через поддержку @GGselrelayer')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 11 12 6 7 11"/><line x1="12" y1="18" x2="12" y2="6"/></svg>
+        <span>Пополнить</span>
+      </div>
+      <div class="hero-btn" onclick="toast('Вывод через поддержку @GGselrelayer')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="7 13 12 18 17 13"/><line x1="12" y1="6" x2="12" y2="18"/></svg>
+        <span>Вывести</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hdr">
+      <span class="sec-title">Активные сделки</span>
+      <span class="sec-cnt">2 открыто</span>
+    </div>
+    <div class="deal" onclick="openDeal('d1')">
+      <div class="deal-top"><span class="deal-id mono">#f3a9c02e</span><span class="pill pill-active">Активна</span></div>
+      <div class="deal-desc">NFT Bored Ape #7741</div>
+      <div class="deal-footer">
+        <span class="deal-amt">8 500 TON</span>
+        <div class="deal-info"><span class="deal-user">@whale_nft</span><span class="deal-time">2 мин</span></div>
+      </div>
+    </div>
+    <div class="deal" onclick="openDeal('d2')">
+      <div class="deal-top"><span class="deal-id mono">#b17d440a</span><span class="pill pill-wait">Ожидает</span></div>
+      <div class="deal-desc">TG Gift — Premium Bear редкий</div>
+      <div class="deal-footer">
+        <span class="deal-amt">3 200 ₽</span>
+        <div class="deal-info"><span class="deal-user">@giftseller</span><span class="deal-time">18 мин</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hdr">
+      <span class="sec-title">Завершённые</span>
+      <span class="sec-cnt">2 сделки</span>
+    </div>
+    <div class="deal" onclick="openDeal('d3')">
+      <div class="deal-top"><span class="deal-id mono">#a021fe83</span><span class="pill pill-done">Закрыта</span></div>
+      <div class="deal-desc">NFT TON Diamonds #312</div>
+      <div class="deal-footer">
+        <span class="deal-amt">4 100 TON</span>
+        <div class="deal-info"><span class="deal-user">@tontrader</span><span class="deal-time">вчера</span></div>
+      </div>
+    </div>
+    <div class="deal" onclick="openDeal('d4')">
+      <div class="deal-top"><span class="deal-id mono">#3c77d812</span><span class="pill pill-done">Закрыта</span></div>
+      <div class="deal-desc">TON Gift пак — редкие 5 шт</div>
+      <div class="deal-footer">
+        <span class="deal-amt">380 USDT</span>
+        <div class="deal-info"><span class="deal-user">@tonpacks</span><span class="deal-time">3 дня</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-title" style="margin-bottom:10px">Статистика</div>
+    <div class="stats">
+      <div class="stat"><div class="stat-lbl">Успешных сделок</div><div class="stat-val g">4</div></div>
+      <div class="stat"><div class="stat-lbl">На эскроу</div><div class="stat-val g">3 480 TON</div></div>
+      <div class="stat"><div class="stat-lbl">Оборот</div><div class="stat-val">41 200 ₽</div></div>
+      <div class="stat"><div class="stat-lbl">Рейтинг</div><div class="stat-val g">5.0 ★</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ CREATE ══════════ -->
+<div class="screen" id="s-create">
+  <div class="hdr">
+    <button class="hdr-back" onclick="go('s-home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polyline points="15 18 9 12 15 6"/></svg>
+      Назад
+    </button>
+    <div class="hdr-logo" style="font-size:14px">Новая сделка</div>
+    <div style="width:60px"></div>
+  </div>
+  <div class="form-body">
+    <div class="form-group">
+      <label class="form-label">Описание товара</label>
+      <input class="form-input" id="f-desc" placeholder="NFT Bored Ape #1234 / TG Gift / Stars..." type="text">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Сумма</label>
+      <input class="form-input" id="f-amount" placeholder="Например: 5000" type="number" inputmode="decimal">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Валюта</label>
+      <div class="currency-row">
+        <button class="currency-btn sel" onclick="selCur(this,'TON')">TON</button>
+        <button class="currency-btn" onclick="selCur(this,'USDT')">USDT</button>
+        <button class="currency-btn" onclick="selCur(this,'RUB')">RUB ₽</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Ваш кошелёк (TON/USDT)</label>
+      <input class="form-input" id="f-wallet" placeholder="UQA... или EQ..." type="text">
+      <div class="form-hint">Укажите куда получить оплату после завершения сделки.</div>
+    </div>
+    <button class="submit-btn" onclick="createDeal()">Создать сделку</button>
+  </div>
+</div>
+
+<!-- ══════════ SUCCESS ══════════ -->
+<div class="screen" id="s-success">
+  <div class="hdr">
+    <button class="hdr-back" onclick="go('s-home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polyline points="15 18 9 12 15 6"/></svg>
+      Главная
+    </button>
+    <div style="width:120px"></div>
+  </div>
+  <div class="success-body">
+    <div class="success-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <div class="success-title">Сделка создана</div>
+    <div class="success-sub" id="success-info">Отправьте ссылку покупателю. Средства будут заморожены на эскроу до подтверждения.</div>
+    <div class="link-box">
+      <span class="link-text mono" id="success-link">https://t.me/ggsel_bot?start=f3a9c02e</span>
+      <button class="copy-btn" onclick="copyLink()" aria-label="Скопировать">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      </button>
+    </div>
+    <button class="submit-btn" onclick="go('s-home')">На главную</button>
+  </div>
+</div>
+
+<!-- ══════════ DEAL DETAIL ══════════ -->
+<div class="screen" id="s-deal">
+  <div class="hdr">
+    <button class="hdr-back" onclick="go('s-home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><polyline points="15 18 9 12 15 6"/></svg>
+      Назад
+    </button>
+    <div class="hdr-logo" style="font-size:14px">Сделка</div>
+    <div style="width:60px"></div>
+  </div>
+  <div class="detail-hero">
+    <div class="detail-label">Защищённая сделка</div>
+    <div class="detail-desc" id="d-desc">NFT Bored Ape #7741</div>
+    <div class="detail-amount" id="d-amount">8 500</div>
+    <div class="detail-currency" id="d-cur">TON · ≈ 70 600 ₽</div>
+  </div>
+  <div class="detail-rows">
+    <div class="detail-row"><span class="dr-key">ID сделки</span><span class="dr-val mono" id="d-id">#f3a9c02e</span></div>
+    <div class="detail-row"><span class="dr-key">Продавец</span><span class="dr-val green" id="d-seller">@whale_nft</span></div>
+    <div class="detail-row"><span class="dr-key">Рейтинг продавца</span><span class="dr-val">★ 4.9 · 47 сделок</span></div>
+    <div class="detail-row"><span class="dr-key">Статус</span><span class="dr-val" id="d-status">Активна</span></div>
+    <div class="detail-row"><span class="dr-key">Комиссия гаранта</span><span class="dr-val">5%</span></div>
+    <div class="detail-row"><span class="dr-key">Создана</span><span class="dr-val" id="d-time">2 мин назад</span></div>
+  </div>
+  <button class="pay-btn" id="pay-btn" onclick="payDeal()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+    Оплатить из баланса
+  </button>
+  <div class="warn-box">⚠️ Передавайте товар только через поддержку @GGselrelayer — никогда напрямую покупателю.</div>
+</div>
+
+<!-- ══════════ PROFILE ══════════ -->
+<div class="screen" id="s-profile">
+  <div class="hdr">
+    <div class="hdr-logo">Профиль</div>
+    <span class="hdr-badge">ID: 83709554</span>
+  </div>
+  <div class="profile-body">
+    <div class="avatar">GG</div>
+    <div class="profile-name">@you</div>
+    <div class="profile-id">user_83709554</div>
+    <div class="profile-stats">
+      <div class="ps"><div class="ps-val">4</div><div class="ps-lbl">Сделок</div></div>
+      <div class="ps"><div class="ps-val">5.0</div><div class="ps-lbl">Рейтинг</div></div>
+      <div class="ps"><div class="ps-val">41К</div><div class="ps-lbl">Оборот ₽</div></div>
+    </div>
+    <div class="wallet-card">
+      <div class="wc-title">Реквизиты</div>
+      <div class="wc-row"><span class="wc-key">TON/USDT</span><span class="wc-val">UQA9x...f3Rt</span></div>
+      <div class="wc-row"><span class="wc-key">СБП / Карта</span><span class="wc-empty">Не указан</span></div>
+    </div>
+    <button class="edit-btn" onclick="toast('Введите новый кошелёк в боте командой /start')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      Изменить реквизиты
+    </button>
+    <button class="edit-btn" onclick="toast('Ссылка скопирована!')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 1l4 4-12 12H5v-4L17 1z"/></svg>
+      Реферальная ссылка
+    </button>
+  </div>
+</div>
+
+<!-- ══════════ NAV ══════════ -->
+<nav class="nav">
+  <div class="nav-item on" onclick="navGo('s-home',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <span>Главная</span>
+  </div>
+  <div class="nav-item" onclick="navGo('s-create',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    <span>Создать</span>
+  </div>
+  <div class="nav-item" onclick="navGo('s-profile',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    <span>Профиль</span>
+  </div>
+</nav>
+
+<script>
+const deals={
+  d1:{desc:'NFT Bored Ape #7741',amount:'8 500',cur:'TON',sub:'≈ 70 600 ₽',id:'#f3a9c02e',seller:'@whale_nft',status:'Активна',time:'2 мин назад',canPay:true},
+  d2:{desc:'TG Gift — Premium Bear редкий',amount:'3 200',cur:'₽',sub:'≈ 35 USDT',id:'#b17d440a',seller:'@giftseller',status:'Ожидает оплаты',time:'18 мин назад',canPay:false},
+  d3:{desc:'NFT TON Diamonds #312',amount:'4 100',cur:'TON',sub:'≈ 34 000 ₽',id:'#a021fe83',seller:'@tontrader',status:'Завершена',time:'вчера',canPay:false},
+  d4:{desc:'TON Gift пак — редкие 5 шт',amount:'380',cur:'USDT',sub:'≈ 31 600 ₽',id:'#3c77d812',seller:'@tonpacks',status:'Завершена',time:'3 дня назад',canPay:false}
+};
+
+let selectedCur='TON';
+
+function go(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function navGo(id,el){
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('on'));
+  el.classList.add('on');
+  go(id);
+}
+
+function openDeal(id){
+  const d=deals[id];
+  document.getElementById('d-desc').textContent=d.desc;
+  document.getElementById('d-amount').textContent=d.amount;
+  document.getElementById('d-cur').textContent=d.cur+' · '+d.sub;
+  document.getElementById('d-id').textContent=d.id;
+  document.getElementById('d-seller').textContent=d.seller;
+  document.getElementById('d-status').textContent=d.status;
+  document.getElementById('d-time').textContent=d.time;
+  const pb=document.getElementById('pay-btn');
+  pb.style.display=d.canPay?'flex':'none';
+  go('s-deal');
+}
+
+function selCur(el,cur){
+  document.querySelectorAll('.currency-btn').forEach(b=>b.classList.remove('sel'));
+  el.classList.add('sel');
+  selectedCur=cur;
+}
+
+function createDeal(){
+  const desc=document.getElementById('f-desc').value.trim();
+  const amount=document.getElementById('f-amount').value.trim();
+  if(!desc||!amount){toast('Заполните описание и сумму');return;}
+  const id=Math.random().toString(36).substr(2,8);
+  document.getElementById('success-link').textContent='https://t.me/ggsel_bot?start='+id;
+  document.getElementById('success-info').textContent=desc+' · '+amount+' '+selectedCur;
+  document.getElementById('f-desc').value='';
+  document.getElementById('f-amount').value='';
+  go('s-success');
+}
+
+function payDeal(){
+  toast('Оплата отправлена! Ожидайте подтверждения арбитражем.');
+  setTimeout(()=>go('s-home'),1500);
+}
+
+function copyLink(){
+  const t=document.getElementById('success-link').textContent;
+  navigator.clipboard.writeText(t).catch(()=>{});
+  toast('Ссылка скопирована!');
+}
+
+let toastTimer;
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.classList.remove('show'),2500);
+}
+</script>
+</body>
+</html>
