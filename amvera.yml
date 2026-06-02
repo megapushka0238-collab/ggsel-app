@@ -1,9 +1,5 @@
 meta:
-  environment: static_web
-  toolchain:
-    name: html
-    version: latest
-build:
-  artifacts:
-    "*": /
-run: {}
+  environment: docker
+run:
+  containerPort: 80
+  persistenceMount: /data
